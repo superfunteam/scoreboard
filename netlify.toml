@@ -1,0 +1,12 @@
+[build]
+  # Directory to publish (relative to root of your repo)
+  publish = "dist/public"
+  
+  # Default build command
+  command = "npx tsx build-static.ts"
+
+[[redirects]]
+  # For single page applications - redirect all paths to index.html
+  from = "/*"
+  to = "/index.html"
+  status = 200

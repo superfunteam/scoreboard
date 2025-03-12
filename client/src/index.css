@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased text-foreground;
+    background-color: #f8fafc; /* Lighter background */
+  }
+}
+
+/* Custom font class for score values */
+.score-value {
+  font-family: 'Zen Dots', cursive !important;
+}
