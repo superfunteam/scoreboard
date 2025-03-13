@@ -102,8 +102,96 @@ export class MemStorage implements IStorage {
   }
 
   async updateSettings(settingsUpdate: InsertSettings): Promise<Settings> {
+    const previousTeamCount = this.settings.teamCount;
     this.settings = { ...this.settings, ...settingsUpdate };
+    
+    // If team count changed, adjust team count
+    if (settingsUpdate.teamCount !== undefined && settingsUpdate.teamCount !== previousTeamCount) {
+      await this.adjustTeamCount(settingsUpdate.teamCount);
+    }
+    
     return this.settings;
+  }
+  
+  // Adjust the number of teams based on settings
+  // Only adds or removes the exact number of teams needed
+  private async adjustTeamCount(targetCount: number): Promise<void> {
+    // Get all current teams
+    let allTeams = await this.getTeams();
+    console.log(`Current team count: ${allTeams.length}, Target count: ${targetCount}`);
+    
+    // If we already have the right number of teams, do nothing
+    if (targetCount === allTeams.length) {
+      console.log("Team count already matches target, no adjustment needed");
+      return;
+    }
+    
+    // If we need to add teams
+    if (targetCount > allTeams.length) {
+      // Calculate exactly how many teams to add
+      const teamsToAdd = targetCount - allTeams.length;
+      console.log(`Adding ${teamsToAdd} teams to reach target of ${targetCount}`);
+      
+      // Get currently used colors to avoid duplicates
+      const colorsInUse = new Set(allTeams.map(team => team.color));
+      
+      // Get colors that aren't being used yet (make a copy to avoid modifying the original)
+      const availableColors = [...TEAM_COLORS].filter(color => !colorsInUse.has(color));
+      
+      // Add the exact number of teams needed
+      for (let i = 0; i < teamsToAdd; i++) {
+        // Choose color from available colors, or fallback to rotating through all colors
+        let color;
+        if (availableColors.length > 0) {
+          // Take a color from available colors
+          color = availableColors.shift() || TEAM_COLORS[i % TEAM_COLORS.length];
+        } else {
+          // All colors are used, just cycle through them
+          color = TEAM_COLORS[i % TEAM_COLORS.length];
+        }
+        
+        // Create the new team
+        await this.createTeam({
+          name: generateRandomTeamName(),
+          score: 0,
+          color
+        });
+      }
+      
+      // Verify the team count after adding
+      allTeams = await this.getTeams();
+      console.log(`After adding, team count is now: ${allTeams.length}`);
+      
+      // If somehow we still don't have exactly the right number, throw an error
+      if (allTeams.length !== targetCount) {
+        console.error(`ERROR: Failed to add teams correctly. Wanted ${targetCount} but have ${allTeams.length}`);
+      }
+    } 
+    // If we need to remove teams
+    else if (targetCount < allTeams.length) {
+      // Calculate exactly how many teams to remove
+      const teamsToRemove = allTeams.length - targetCount;
+      console.log(`Removing ${teamsToRemove} teams to reach target of ${targetCount}`);
+      
+      // Sort teams by ID (descending) and take the ones to remove
+      // This ensures we remove the newest teams first
+      const sortedTeams = [...allTeams].sort((a, b) => b.id - a.id);
+      const teamsToDelete = sortedTeams.slice(0, teamsToRemove);
+      
+      // Delete each team
+      for (const team of teamsToDelete) {
+        await this.deleteTeam(team.id);
+      }
+      
+      // Verify the team count after removing
+      allTeams = await this.getTeams();
+      console.log(`After removing, team count is now: ${allTeams.length}`);
+      
+      // If somehow we still don't have exactly the right number, throw an error
+      if (allTeams.length !== targetCount) {
+        console.error(`ERROR: Failed to remove teams correctly. Wanted ${targetCount} but have ${allTeams.length}`);
+      }
+    }
   }
 }
 

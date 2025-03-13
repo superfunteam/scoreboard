@@ -24,8 +24,8 @@ class AudioManager {
     
     try {
       // Create audio elements
-      this.plusSound = new Audio('/assets/plus.mp3');
-      this.minusSound = new Audio('/assets/minus.mp3');
+      this.plusSound = new Audio('/attached_assets/plus.mp3');
+      this.minusSound = new Audio('/attached_assets/minus.mp3');
       
       // Preload sounds
       this.plusSound.load();

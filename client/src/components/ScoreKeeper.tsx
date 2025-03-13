@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -18,6 +18,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+// Import our grid styles
+import styles from './TeamGrid.module.css';
+
 export default function ScoreKeeper() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
@@ -27,7 +30,7 @@ export default function ScoreKeeper() {
 
   // Fetch teams data
   const {
-    data: teams,
+    data: allTeams,
     isLoading: isLoadingTeams,
     error: teamsError,
   } = useQuery<Team[]>({
@@ -42,6 +45,12 @@ export default function ScoreKeeper() {
   } = useQuery<Settings>({
     queryKey: ["/api/settings"],
   });
+
+  // Derive active teams based on settings.teamCount
+  // This ensures we only display exactly the number of teams set in settings
+  const teams = allTeams && settings ? 
+    allTeams.slice(0, settings.teamCount) : 
+    [];
 
   // Update team score mutation
   const updateScoreMutation = useMutation({
@@ -141,7 +150,33 @@ export default function ScoreKeeper() {
     }
   }, [teamsError, settingsError, toast]);
 
-  const isLoading = isLoadingTeams || isLoadingSettings;
+  const isLoading = isLoadingTeams || isLoadingSettings || !settings;
+
+  // Determine grid class based on team count from settings
+  const getGridClass = () => {
+    if (!settings) return `${styles.gridContainer} ${styles.grid2}`;
+    
+    // Always use settings.teamCount for grid layout, not the actual teams array length
+    const count = settings.teamCount;
+    
+    switch (count) {
+      case 2: return `${styles.gridContainer} ${styles.grid2}`;
+      case 3: return `${styles.gridContainer} ${styles.grid3}`;
+      case 4: return `${styles.gridContainer} ${styles.grid4}`;
+      case 5: return `${styles.gridContainer} ${styles.grid5}`;
+      case 6: return `${styles.gridContainer} ${styles.grid6}`;
+      case 7: return `${styles.gridContainer} ${styles.grid7}`;
+      case 8: return `${styles.gridContainer} ${styles.grid8}`;
+      default: return `${styles.gridContainer} ${styles.grid2}`; // Default to 2-up layout
+    }
+  };
+  
+  // For debugging
+  useEffect(() => {
+    if (allTeams && settings) {
+      console.log(`Settings team count: ${settings.teamCount}, Total teams: ${allTeams.length}, Displaying: ${teams.length}`);
+    }
+  }, [allTeams, settings, teams]);
 
   return (
     <div className="relative min-h-screen pb-24 pt-6">
@@ -152,8 +187,8 @@ export default function ScoreKeeper() {
             <span className="ml-2 text-lg">Loading...</span>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {teams?.map((team) => (
+          <div className={getGridClass()}>
+            {teams.map((team) => (
               <ScoreCard
                 key={team.id}
                 team={team}
@@ -206,7 +241,7 @@ export default function ScoreKeeper() {
           isOpen={isSettingsOpen}
           onClose={() => setIsSettingsOpen(false)}
           settings={settings}
-          teams={teams || []}
+          teams={allTeams || []}
         />
       )}
       

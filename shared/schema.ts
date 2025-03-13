@@ -15,13 +15,16 @@ export const settings = pgTable("settings", {
   scoreIncrement: integer("score_increment").notNull().default(1),
 });
 
-// Predefined color options for teams
+// Predefined color options for teams (8 distinct bright colors)
 export const TEAM_COLORS = [
   "#4F46E5", // Indigo
-  "#10B981", // Emerald
   "#EF4444", // Red
+  "#10B981", // Emerald
   "#F59E0B", // Amber
-  "#8B5CF6"  // Purple
+  "#8B5CF6", // Purple
+  "#EC4899", // Pink
+  "#06B6D4", // Cyan
+  "#FB923C"  // Orange
 ];
 
 export const insertTeamSchema = createInsertSchema(teams).pick({

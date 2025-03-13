@@ -212,22 +212,44 @@ class LocalStorage {
 
   /**
    * Adjust the number of teams based on settings
+   * Only adds or removes the exact number of teams needed
    */
   private adjustTeamCount(targetCount: number): void {
+    // Get current teams
     let teams = this.getTeams();
-    const currentCount = teams.length;
+    console.log(`Current team count: ${teams.length}, Target count: ${targetCount}`);
     
-    if (targetCount === currentCount) return;
+    // If we already have the right number of teams, do nothing
+    if (targetCount === teams.length) {
+      console.log("Team count already matches target, no adjustment needed");
+      return;
+    }
     
-    if (targetCount > currentCount) {
-      // Add more teams
-      const colorsInUse = new Set(teams.map(team => team.color));
-      const availableColors = TEAM_COLORS.filter(color => !colorsInUse.has(color));
+    // If we need to add teams
+    if (targetCount > teams.length) {
+      // Calculate exactly how many teams to add
+      const teamsToAdd = targetCount - teams.length;
+      console.log(`Adding ${teamsToAdd} teams to reach target of ${targetCount}`);
       
-      for (let i = currentCount; i < targetCount; i++) {
-        const colorIndex = (i - currentCount) % availableColors.length;
-        const color = availableColors[colorIndex] || TEAM_COLORS[i % TEAM_COLORS.length];
+      // Get currently used colors to avoid duplicates
+      const colorsInUse = new Set(teams.map(team => team.color));
+      
+      // Get colors that aren't being used yet
+      const availableColors = [...TEAM_COLORS].filter(color => !colorsInUse.has(color));
+      
+      // Add the exact number of teams needed
+      for (let i = 0; i < teamsToAdd; i++) {
+        // Choose color from available colors, or fallback to rotating through all colors
+        let color;
+        if (availableColors.length > 0) {
+          // Take a color from available colors
+          color = availableColors.shift() || TEAM_COLORS[i % TEAM_COLORS.length];
+        } else {
+          // All colors are used, just cycle through them
+          color = TEAM_COLORS[i % TEAM_COLORS.length];
+        }
         
+        // Create the new team
         teams.push({
           id: this.teamCurrentId++,
           name: generateRandomTeamName(),
@@ -235,11 +257,25 @@ class LocalStorage {
           color
         });
       }
-    } else {
-      // Remove excess teams
-      teams = teams.slice(0, targetCount);
+      
+      console.log(`After adding, team count is now: ${teams.length}`);
+    } 
+    // If we need to remove teams
+    else if (targetCount < teams.length) {
+      // Calculate exactly how many teams to remove
+      const teamsToRemove = teams.length - targetCount;
+      console.log(`Removing ${teamsToRemove} teams to reach target of ${targetCount}`);
+      
+      // Sort teams by ID (descending) and remove the newest teams first
+      teams.sort((a, b) => b.id - a.id);
+      teams = teams.slice(teamsToRemove);
+      // Sort back by ID ascending for consistent display
+      teams.sort((a, b) => a.id - b.id);
+      
+      console.log(`After removing, team count is now: ${teams.length}`);
     }
     
+    // Save the updated teams
     this.setItem(this.teamsKey, teams);
   }
 }

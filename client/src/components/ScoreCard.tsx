@@ -1,8 +1,9 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Minus, Loader2 } from "lucide-react";
-import { Team } from "@shared/schema";
+import { Team, Settings } from "@shared/schema";
 import { audioManager } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
 
 interface ScoreCardProps {
   team: Team;
@@ -17,6 +18,11 @@ export default function ScoreCard({
   onDecrement,
   isPending,
 }: ScoreCardProps) {
+  // Get settings to determine score display size
+  const { data: settings } = useQuery<Settings>({
+    queryKey: ["/api/settings"],
+  });
+  
   // Handler for increment with sound
   const handleIncrement = () => {
     audioManager.playPlusSound();
@@ -58,13 +64,23 @@ export default function ScoreCard({
     backgroundColor: getTransparentColor(team.color)
   };
   
+  // Determine score font size based on team count setting
+  const getScoreClass = () => {
+    // If settings aren't loaded yet or there are exactly 2 teams, use larger font
+    if (!settings || settings.teamCount === 2) {
+      return 'text-9xl';
+    }
+    // Use smaller font for 3 or more teams
+    return 'text-7xl';
+  };
+  
   return (
-    <Card className="overflow-hidden" style={cardStyle}>
+    <Card className="overflow-hidden flex flex-col h-full" style={cardStyle}>
       <CardHeader className="p-4 text-white" style={headerStyle}>
         <h2 className="text-xl font-semibold text-center">{team.name}</h2>
       </CardHeader>
-      <CardContent className="p-6 flex flex-col items-center relative">
-        <div className="text-7xl font-bold text-slate-800 my-8 score-value">
+      <CardContent className="p-6 flex flex-col items-center justify-center relative flex-grow">
+        <div className={`font-bold text-slate-800 score-value ${getScoreClass()}`}>
           {formatNumber(team.score)}
         </div>
         
